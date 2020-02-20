@@ -1,0 +1,171 @@
+#!/usr/bin/env python3
+
+__author__ = 'Altertech https://www.altertech.com/'
+__license__ = 'MIT'
+__version__ = '0.0.2'
+
+from pathlib import Path
+from pySMART import Device
+from collections import OrderedDict
+import rapidtables
+import neotermcolor
+import os
+import sys
+import argparse
+
+colored = neotermcolor.colored
+
+ap = argparse.ArgumentParser(description='Show HDD/SSD list')
+ap.add_argument('-V',
+                '--version',
+                action='store_true',
+                help='Print version and exit')
+ap.add_argument('--temp-warn',
+                default=40,
+                type=int,
+                metavar='TEMP',
+                help='Warning temperature (C), default: 40')
+ap.add_argument('--temp-crit',
+                default=45,
+                type=int,
+                metavar='TEMP',
+                help='Critical temperature (C), default: 45')
+ap.add_argument('-R', '--raw', action='store_true', help='Suppress colors')
+ap.add_argument('-y',
+                '--full',
+                action='store_true',
+                help='Display full disk info')
+ap.add_argument('-e',
+                '--errors',
+                action='store_true',
+                help='Display only disks with errors / critical temperature')
+ap.add_argument('-s',
+                '--no-header',
+                action='store_true',
+                help='Suppress header')
+ap.add_argument('-J', '--json', action='store_true', help='Output as JSON')
+a = ap.parse_args()
+
+if a.version:
+    print(__version__)
+    sys.exit()
+
+if os.getuid():
+    print('please run me as root')
+    sys.exit(5)
+
+if a.raw:
+    neotermcolor._isatty = False
+
+data = []
+temps = []
+errors = []
+
+exit_code = 0
+
+for fl in ('nvme', 's', 'h'):
+    for dl in range(0, 100) if fl == 'nvme' else range(97, 123):
+        c = str(dl) if fl == 'nvme' else 'd' + chr(dl)
+        devpath = Path('/dev/{}{}'.format(fl, c))
+        if neotermcolor._isatty:
+            print(': {} '.format(colored(devpath, color='cyan')), end='')
+        if devpath.exists():
+            dev = Device(devpath.as_posix())
+            d = OrderedDict()
+            d['Disk'] = dev.name
+            d['Model'] = dev.model
+            d['Serial'] = dev.serial
+            if dev.temperature:
+                d['Temp'] = dev.temperature if a.json else '{} C'.format(
+                    dev.temperature)
+            else:
+                d['Temp'] = ''
+            lcc = ''
+            poh = ''
+            err = False
+            for attr in dev.attributes:
+                try:
+                    if attr:
+                        if attr.name in (
+                                'End-to-End_Error',
+                                'Seek_Error_Rate',
+                                'Raw_Read_Error_Rate',
+                                'UDMA_CRC_Error_Count',
+                        ) and int(attr.raw) > 0:
+                            err = True
+                        elif attr.name == 'Load_Cycle_Count':
+                            lcc = int(attr.raw)
+                        elif attr.name == 'Power_On_Hours':
+                            poh = int(attr.raw)
+                except:
+                    pass
+            if a.full:
+                d['PoH'] = poh
+                d['LCC'] = lcc
+                d['Int'] = dev.interface
+                d['SSD'] = 'Yes' if dev.is_ssd else 'No'
+                d['Capacity'] = dev.capacity
+                d['RRate'] = dev.rotation_rate
+                d['Firmware'] = dev.firmware
+            if not a.errors or err or (dev.temperature and
+                                       dev.temperature >= a.temp_crit):
+                temps.append(dev.temperature)
+                data.append(d)
+                errors.append(err)
+            if neotermcolor._isatty:
+                print('[{}]'.format(
+                    colored(dev.serial, color='cyan', attrs='bold')),
+                      end='')
+        if neotermcolor._isatty:
+            sys.stdout.write("\033[K")
+            print('\r', end='')
+            sys.stdout.flush()
+
+if a.json:
+    import json
+    print(json.dumps(data))
+elif data:
+    header, rows = rapidtables.format_table(
+        data,
+        fmt=rapidtables.FORMAT_GENERATOR_COLS,
+        align=(rapidtables.ALIGN_CENTER, rapidtables.ALIGN_LEFT,
+               rapidtables.ALIGN_LEFT, rapidtables.ALIGN_RIGHT,
+               rapidtables.ALIGN_RIGHT, rapidtables.ALIGN_RIGHT,
+               rapidtables.ALIGN_CENTER, rapidtables.ALIGN_CENTER,
+               rapidtables.ALIGN_RIGHT, rapidtables.ALIGN_RIGHT,
+               rapidtables.ALIGN_LEFT))
+    spacer = '  '
+    if not a.no_header:
+        print(colored(spacer.join(header), color='blue'))
+        print(colored('-' * sum([(len(x) + 2) for x in header]), color='grey'))
+    for r, d, temp, e in zip(rows, data, temps, errors):
+        print(colored(r[0], color='red' if e else 'cyan') + spacer, end='')
+        print(colored(r[1], color='red' if e else 'white') + spacer, end='')
+        print(colored(r[2], color='red' if e else 'cyan', attrs='bold') +
+              spacer,
+              end='')
+        try:
+            if temp >= a.temp_crit:
+                tcolor = 'red'
+                exit_code = 1
+            elif temp >= a.temp_warn:
+                tcolor = 'yellow'
+            else:
+                tcolor = 'green'
+        except:
+            tcolor = None
+        print(colored(r[3], color=tcolor, attrs='bold') + spacer, end='')
+        if a.full:
+            print(colored(r[4] + spacer), end='')
+            print(colored(r[5] + spacer, color='cyan'), end='')
+            print(colored(r[6] + spacer), end='')
+            print(colored(r[7] + spacer,
+                          color='magenta' if r[7].strip() == 'Yes' else None),
+                  end='')
+            print(colored(r[8] + spacer, attrs='bold'), end='')
+            print(colored(r[9] + spacer, color='cyan'), end='')
+            print(colored(r[10] + spacer))
+        else:
+            print()
+
+sys.exit(2 if True in errors else exit_code)

@@ -1,0 +1,7 @@
+__pycache__
+shd.egg-info
+build
+dist
+Makefile
+TODO.todo
+*.pyc
