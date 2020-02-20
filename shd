@@ -90,6 +90,7 @@ for m in ('nvme[0-999]', 'sd[a-z]', 'hd[a-z]'):
 for devpath in devs:
     if neotermcolor._isatty:
         print(': {} '.format(colored(devpath, color='cyan')), end='')
+    # don't use is_block_device - it's False for some NVMe SSDs
     if devpath.exists():
         dev = Device(devpath.as_posix())
         d = OrderedDict()
