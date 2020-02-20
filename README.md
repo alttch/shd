@@ -24,8 +24,8 @@ Tool should be started under root, to obtain S.M.A.R.T. info
 ```
 shd [-h] [--temp-warn TEMP] [--temp-crit TEMP] [-R] [-y] [-e] [-s] [-J]
 
-  --temp-warn TEMP  Warning temperature (C), default: 40
-  --temp-crit TEMP  Critical temperature (C), default: 45
+  --temp-warn TEMP  Warning temperature, default: 40 C
+  --temp-crit TEMP  Critical temperature, default: 45 C
   --fh, --fahrenheit  Temperature in Fahrenheit
   -R, --raw         Suppress colors
   -y, --full        Display full disk info
