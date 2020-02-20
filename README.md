@@ -19,6 +19,7 @@ python3 -m pip install shd
 
 Script should be run as root, to obtain S.M.A.R.T. info
 
+```
 shd [-h] [--temp-warn TEMP] [--temp-crit TEMP] [-R] [-y] [-e] [-s] [-J]
 
   --temp-warn TEMP  Warning temperature (C), default: 40
@@ -28,6 +29,7 @@ shd [-h] [--temp-warn TEMP] [--temp-crit TEMP] [-R] [-y] [-e] [-s] [-J]
   -e, --errors      Display only disks with errors / critical temperature
   -s, --no-header   Suppress header
   -J, --json        Output as JSON
+```
 
 p.s. if someone needs temperature in Fahrenheit, feel free to implement or drop
 me an issue.
