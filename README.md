@@ -19,7 +19,7 @@ python3 -m pip install shd
 
 ## Usage
 
-Script should be run as root, to obtain S.M.A.R.T. info
+Tool should be started under root, to obtain S.M.A.R.T. info
 
 ```
 shd [-h] [--temp-warn TEMP] [--temp-crit TEMP] [-R] [-y] [-e] [-s] [-J]
