@@ -12,6 +12,7 @@ import neotermcolor
 import os
 import sys
 import argparse
+import shutil
 
 colored = neotermcolor.colored
 
@@ -70,6 +71,10 @@ if a.version:
 if os.getuid():
     print('please run me as root')
     sys.exit(5)
+
+if not shutil.which('smartctl'):
+    print('smartctl not found, please install smartmontools')
+    sys.exit(6)
 
 if a.raw:
     neotermcolor._isatty = False
