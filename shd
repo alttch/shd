@@ -15,21 +15,32 @@ import argparse
 
 colored = neotermcolor.colored
 
+temp_warn = 40
+temp_crit = 45
+
+
+def c2f(t, nc):
+    return round(t * 1.8 + 32) if nc and t is not None else t
+
+
 ap = argparse.ArgumentParser(description='Show HDD/SSD list')
 ap.add_argument('-V',
                 '--version',
                 action='store_true',
                 help='Print version and exit')
 ap.add_argument('--temp-warn',
-                default=40,
                 type=int,
                 metavar='TEMP',
-                help='Warning temperature (C), default: 40')
+                help='Warning temperature, default: 40 C')
 ap.add_argument('--temp-crit',
-                default=45,
                 type=int,
                 metavar='TEMP',
-                help='Critical temperature (C), default: 45')
+                help='Critical temperature, default: 45 C')
+ap.add_argument('--fh',
+                '--fahrenheit',
+                dest='fh',
+                action='store_true',
+                help='Temperature in Fahrenheit')
 ap.add_argument('-R', '--raw', action='store_true', help='Suppress colors')
 ap.add_argument('-y',
                 '--full',
@@ -45,6 +56,12 @@ ap.add_argument('-s',
                 help='Suppress header')
 ap.add_argument('-J', '--json', action='store_true', help='Output as JSON')
 a = ap.parse_args()
+
+if a.temp_warn is None:
+    a.temp_warn = c2f(temp_warn, a.fh)
+
+if a.temp_crit is None:
+    a.temp_crit = c2f(temp_crit, a.fh)
 
 if a.version:
     print(__version__)
@@ -79,9 +96,10 @@ for devpath in devs:
         d['Disk'] = dev.name
         d['Model'] = dev.model
         d['Serial'] = dev.serial
+        dev.temperature = c2f(dev.temperature, a.fh)
         if dev.temperature:
-            d['Temp'] = dev.temperature if a.json else '{} C'.format(
-                dev.temperature)
+            d['Temp'] = dev.temperature if a.json else '{} {}'.format(
+                dev.temperature, 'F' if a.fh else 'C')
         else:
             d['Temp'] = ''
         lcc = ''

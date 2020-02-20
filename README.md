@@ -45,6 +45,3 @@ greater than zero:
 * Seek_Error_Rate
 * Raw_Read_Error_Rate
 * UDMA_CRC_Error_Count
-
-p.s. if someone needs temperature in Fahrenheit, feel free to implement or drop
-me an issue.
