@@ -7,7 +7,7 @@ table with HDD info.
 I wrote "shd" shell script with a similar functionality. Now I've rewritten it
 in Python, added options and pretty colors, and releasing it to public.
 
-![](demo.gif)
+<img src="https://raw.githubusercontent.com/alttch/shd/master/demo.gif" />
 
 ## Installation
 
