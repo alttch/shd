@@ -33,5 +33,18 @@ shd [-h] [--temp-warn TEMP] [--temp-crit TEMP] [-R] [-y] [-e] [-s] [-J]
   -J, --json        Output as JSON
 ```
 
+## Exit codes
+
+* **1** critical temperature
+* **2** errors detected
+
+The tool considers drive has an errors, if the following S.M.A.R.T. fields are
+greater than zero:
+
+* End-to-End_Error
+* Seek_Error_Rate
+* Raw_Read_Error_Rate
+* UDMA_CRC_Error_Count
+
 p.s. if someone needs temperature in Fahrenheit, feel free to implement or drop
 me an issue.
