@@ -107,7 +107,7 @@ for devpath in devs:
             d['PoH'] = poh
             d['LCC'] = lcc
             d['Int'] = dev.interface
-            d['SSD'] = 'Yes' if dev.is_ssd else 'No'
+            d['SSD'] = 'ssd' if dev.is_ssd else ''
             d['Capacity'] = dev.capacity
             d['RRate'] = dev.rotation_rate
             d['Firmware'] = dev.firmware
@@ -164,7 +164,7 @@ elif data:
             print(colored(r[5] + spacer, color='cyan'), end='')
             print(colored(r[6] + spacer), end='')
             print(colored(r[7] + spacer,
-                          color='magenta' if r[7].strip() == 'Yes' else None),
+                          color='magenta' if r[7].strip() == 'ssd' else None),
                   end='')
             print(colored(r[8] + spacer, attrs='bold'), end='')
             print(colored(r[9] + spacer, color='cyan'), end='')
