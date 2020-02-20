@@ -71,59 +71,59 @@ for m in ('nvme[0-999]', 'sd[a-z]', 'hd[a-z]'):
     devs += list(dev_dir.glob(m))
 
 for devpath in devs:
+    if neotermcolor._isatty:
+        print(': {} '.format(colored(devpath, color='cyan')), end='')
+    if devpath.exists():
+        dev = Device(devpath.as_posix())
+        d = OrderedDict()
+        d['Disk'] = dev.name
+        d['Model'] = dev.model
+        d['Serial'] = dev.serial
+        if dev.temperature:
+            d['Temp'] = dev.temperature if a.json else '{} C'.format(
+                dev.temperature)
+        else:
+            d['Temp'] = ''
+        lcc = ''
+        poh = ''
+        err = False
+        for attr in dev.attributes:
+            try:
+                if attr:
+                    if attr.name in (
+                            'End-to-End_Error',
+                            'Seek_Error_Rate',
+                            'Raw_Read_Error_Rate',
+                            'UDMA_CRC_Error_Count',
+                    ) and int(attr.raw) > 0:
+                        err = True
+                    elif attr.name == 'Load_Cycle_Count':
+                        lcc = int(attr.raw)
+                    elif attr.name == 'Power_On_Hours':
+                        poh = int(attr.raw)
+            except:
+                pass
+        if a.full:
+            d['PoH'] = poh
+            d['LCC'] = lcc
+            d['Int'] = dev.interface
+            d['SSD'] = 'Yes' if dev.is_ssd else 'No'
+            d['Capacity'] = dev.capacity
+            d['RRate'] = dev.rotation_rate
+            d['Firmware'] = dev.firmware
+        if not a.errors or err or (dev.temperature and
+                                   dev.temperature >= a.temp_crit):
+            temps.append(dev.temperature)
+            data.append(d)
+            errors.append(err)
         if neotermcolor._isatty:
-            print(': {} '.format(colored(devpath, color='cyan')), end='')
-        if devpath.exists():
-            dev = Device(devpath.as_posix())
-            d = OrderedDict()
-            d['Disk'] = dev.name
-            d['Model'] = dev.model
-            d['Serial'] = dev.serial
-            if dev.temperature:
-                d['Temp'] = dev.temperature if a.json else '{} C'.format(
-                    dev.temperature)
-            else:
-                d['Temp'] = ''
-            lcc = ''
-            poh = ''
-            err = False
-            for attr in dev.attributes:
-                try:
-                    if attr:
-                        if attr.name in (
-                                'End-to-End_Error',
-                                'Seek_Error_Rate',
-                                'Raw_Read_Error_Rate',
-                                'UDMA_CRC_Error_Count',
-                        ) and int(attr.raw) > 0:
-                            err = True
-                        elif attr.name == 'Load_Cycle_Count':
-                            lcc = int(attr.raw)
-                        elif attr.name == 'Power_On_Hours':
-                            poh = int(attr.raw)
-                except:
-                    pass
-            if a.full:
-                d['PoH'] = poh
-                d['LCC'] = lcc
-                d['Int'] = dev.interface
-                d['SSD'] = 'Yes' if dev.is_ssd else 'No'
-                d['Capacity'] = dev.capacity
-                d['RRate'] = dev.rotation_rate
-                d['Firmware'] = dev.firmware
-            if not a.errors or err or (dev.temperature and
-                                       dev.temperature >= a.temp_crit):
-                temps.append(dev.temperature)
-                data.append(d)
-                errors.append(err)
-            if neotermcolor._isatty:
-                print('[{}]'.format(
-                    colored(dev.serial, color='cyan', attrs='bold')),
-                      end='')
-        if neotermcolor._isatty:
-            sys.stdout.write("\033[K")
-            print('\r', end='')
-            sys.stdout.flush()
+            print('[{}]'.format(colored(dev.serial, color='cyan',
+                                        attrs='bold')),
+                  end='')
+    if neotermcolor._isatty:
+        sys.stdout.write("\033[K")
+        print('\r', end='')
+        sys.stdout.flush()
 
 if a.json:
     import json
