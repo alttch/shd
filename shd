@@ -171,5 +171,8 @@ elif data:
             print(colored(r[10] + spacer))
         else:
             print()
+else:
+    if neotermcolor._isatty:
+        sys.stdout.write("\033[K")
 
 sys.exit(2 if True in errors else exit_code)
