@@ -63,10 +63,14 @@ errors = []
 
 exit_code = 0
 
-for fl in ('nvme', 's', 'h'):
-    for dl in range(0, 100) if fl == 'nvme' else range(97, 123):
-        c = str(dl) if fl == 'nvme' else 'd' + chr(dl)
-        devpath = Path('/dev/{}{}'.format(fl, c))
+dev_dir = Path('/dev')
+
+devs = []
+
+for m in ('nvme[0-999]', 'sd[a-z]', 'hd[a-z]'):
+    devs += list(dev_dir.glob(m))
+
+for devpath in devs:
         if neotermcolor._isatty:
             print(': {} '.format(colored(devpath, color='cyan')), end='')
         if devpath.exists():
