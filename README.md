@@ -4,8 +4,8 @@ Long time ago when I've switched from Solaris to Linux, I missed "hd" utility.
 In Linux "hd" command is used for a hex dump, in Solaris it displayed a pretty
 table with HDD info.
 
-I wrote "shd" shell script with a similar functionality. Now I've rewritten it
-in Python, added options and pretty colors, and releasing it to public.
+I wrote "shd" shell script with a similar functionality. Now I've rewrote it in
+Python, added options and pretty colors, and releasing it to public.
 
 <img src="https://raw.githubusercontent.com/alttch/shd/master/demo.gif" />
 
