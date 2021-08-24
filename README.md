@@ -13,8 +13,7 @@ Rust, as statically built binaries for x86\_64 Linux, i686, ARM and AARCH64.
 ## Installation
 
 Install *smartmontools (>=7.0)*, then download the appropriate binary from the
-[releases](https://github.com/alttch/shd/releases) page, chmod it to 755 and
-enjoy.
+[releases](https://github.com/alttch/shd/releases) page, chmod +x and enjoy.
 
 ## Usage
 
