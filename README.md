@@ -38,5 +38,5 @@ shd [-h] [--temp-warn TEMP] [--temp-crit TEMP] [-R] [-y] [-e] [-s] [-J]
 * **2** errors detected
 * **3** smartctl error
 
-The tool considers drive has errors, if its smart status is either not reported
-or reported as "false".
+The tool considers a drive has errors if its smart status is either not
+reported or reported as "false".
