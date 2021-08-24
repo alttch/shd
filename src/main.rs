@@ -170,7 +170,6 @@ fn process_temperature(
                     err = true;
                     s.red().bold()
                 } else if tcur >= levels.0 {
-                    err = true;
                     s.yellow().bold()
                 } else {
                     s.green().bold()
