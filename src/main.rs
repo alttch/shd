@@ -361,8 +361,8 @@ fn main() {
                 }
                 table.add_row(prettytable::Row::new(cells));
             }
-            table.printstd();
         }
+        table.printstd();
     } else {
         println!("{}", "No devices available".yellow().bold());
     }
