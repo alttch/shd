@@ -18,8 +18,6 @@ enjoy.
 
 ## Usage
 
-Tool should be started under root, to obtain S.M.A.R.T. info
-
 ```
 shd [-h] [--temp-warn TEMP] [--temp-crit TEMP] [-R] [-y] [-e] [-s] [-f]
 
