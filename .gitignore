@@ -1,7 +1,3 @@
-__pycache__
-shd.egg-info
-build
-dist
-Makefile
+_build
 TODO.todo
-*.pyc
+target
