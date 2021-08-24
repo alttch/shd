@@ -264,14 +264,15 @@ fn main() {
     if opts.full {
         titles.extend(vec!["PoH", "PCC", "Int", "Capacity", "RRate", "Firmware"]);
     }
-    let mut table = ctable(
-        match opts.no_header {
-            true => None,
-            false => Some(titles),
-        },
-        opts.raw,
-    );
+    let mut need_print = false;
     if !devices.is_empty() {
+        let mut table = ctable(
+            match opts.no_header {
+                true => None,
+                false => Some(titles),
+            },
+            opts.raw,
+        );
         let temp_warn = match opts.temp_warn {
             Some(v) => v,
             None => match opts.fahrenheit {
@@ -360,9 +361,12 @@ fn main() {
                     ]);
                 }
                 table.add_row(prettytable::Row::new(cells));
+                need_print = true;
             }
         }
-        table.printstd();
+        if need_print {
+            table.printstd();
+        }
     } else {
         println!("{}", "No devices available".yellow().bold());
     }
