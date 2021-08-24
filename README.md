@@ -21,11 +21,11 @@ enjoy.
 Tool should be started under root, to obtain S.M.A.R.T. info
 
 ```
-shd [-h] [--temp-warn TEMP] [--temp-crit TEMP] [-R] [-y] [-e] [-s] [-J]
+shd [-h] [--temp-warn TEMP] [--temp-crit TEMP] [-R] [-y] [-e] [-s] [-f]
 
   --temp-warn TEMP  Warning temperature, default: 40 C
   --temp-crit TEMP  Critical temperature, default: 45 C
-  --f, --fahrenheit Temperature in Fahrenheit
+  -f, --fahrenheit  Temperature in Fahrenheit
   -R, --raw         Suppress colors
   -y, --full        Display full disk info
   -e, --errors      Display only disks with errors / critical temperature
