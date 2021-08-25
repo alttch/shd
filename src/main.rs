@@ -210,39 +210,33 @@ fn main() {
     let mut devices = Vec::<SmartData>::new();
     for m in vec!["nvme[0-999]", "sd[a-z]", "hd[a-z]"] {
         for entry in glob(&format!("/dev/{}", m)).expect(&format!("Failed to read path {}", m)) {
-            match entry {
-                Ok(path) => {
-                    let p = path.to_str().unwrap();
-                    if SHOULD_COLORIZE.should_colorize() {
-                        print!(": {}", p.cyan());
-                        io::stdout().flush().unwrap();
+            let path = entry.unwrap();
+            let p = path.to_str().unwrap();
+            if SHOULD_COLORIZE.should_colorize() {
+                print!(": {}", p.cyan());
+                io::stdout().flush().unwrap();
+            }
+            let data = smartctl(p);
+            let mut smartdata: SmartData = serde_json::from_slice(&data)
+                .map_err(|e| {
+                    println!("Unable to get device {} info: {}", p, e);
+                })
+                .unwrap();
+            if SHOULD_COLORIZE.should_colorize() {
+                io::stdout().write(&[0x0d, 0x1b, 0x5b, 0x4b]).unwrap();
+                io::stdout().flush().unwrap();
+            }
+            if smartdata.smartctl.exit_status != 0 {
+                exit_code = EXIT_CODE_SMARTCTL;
+                println!("{}", format!("Unable to read device {} info", p).red());
+                smartdata.smartctl.messages.map(|messages| {
+                    for m in messages {
+                        m.string.map(|s| println!("{}", s));
                     }
-                    let data = smartctl(p);
-                    let mut smartdata: SmartData = serde_json::from_slice(&data)
-                        .map_err(|e| {
-                            println!("Unable to get device {} info: {}", p, e);
-                        })
-                        .unwrap();
-                    if SHOULD_COLORIZE.should_colorize() {
-                        io::stdout().write(&[0x0d, 0x1b, 0x5b, 0x4b]).unwrap();
-                        io::stdout().flush().unwrap();
-                    }
-                    if smartdata.smartctl.exit_status != 0 {
-                        exit_code = EXIT_CODE_SMARTCTL;
-                        println!("{}", format!("Unable to read device {} info", p).red());
-                        smartdata.smartctl.messages.map(|messages| {
-                            for m in messages {
-                                m.string.map(|s| println!("{}", s));
-                            }
-                        });
-                    } else {
-                        smartdata.name = path.file_name().unwrap().to_str().unwrap().to_owned();
-                        devices.push(smartdata);
-                    }
-                }
-                Err(e) => {
-                    panic!("{}", e);
-                }
+                });
+            } else {
+                smartdata.name = path.file_name().unwrap().to_str().unwrap().to_owned();
+                devices.push(smartdata);
             }
         }
     }
