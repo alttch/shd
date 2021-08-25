@@ -22,21 +22,9 @@ const EXIT_CODE_TEMP: i32 = 1;
 const EXIT_CODE_ERRORS: i32 = 2;
 const EXIT_CODE_SMARTCTL: i32 = 3;
 
-macro_rules! empty {
-    () => {
-        String::new()
-    };
-}
-
-macro_rules! empty_c {
-    () => {
-        String::new().normal()
-    };
-}
-
 macro_rules! s {
     ($s: expr) => {
-        $s.map_or(empty!(), |v| v.to_string())
+        $s.map_or(<_>::default(), |v| v.to_string())
     };
 }
 
@@ -158,8 +146,8 @@ fn process_temperature(
     levels: (f32, f32),
 ) -> (ColoredString, bool) {
     let mut err = false;
-    let ts = t.map_or(empty_c!(), |temp| {
-        temp.current.map_or(empty_c!(), |tcur_c| {
+    let ts = t.map_or(<_>::default(), |temp| {
+        temp.current.map_or(<_>::default(), |tcur_c| {
             let tcur = tcur_c.to_fahrenheit_or(fahrenheit);
             let s = match fahrenheit {
                 true => format!("{:.0} F", tcur),
@@ -265,7 +253,9 @@ fn main() {
             .temp_warn
             .unwrap_or(TEMP_CRIT_DEFAULT_C_NVME.to_fahrenheit_or(opts.fahrenheit));
         for d in devices {
-            let device_tp = d.device.map_or(empty!(), |v| v.tp.unwrap_or_default());
+            let device_tp = d
+                .device
+                .map_or(<_>::default(), |v| v.tp.unwrap_or_default());
             let (temp, temp_err) = process_temperature(
                 d.temperature,
                 opts.fahrenheit,
@@ -314,13 +304,13 @@ fn main() {
                         cell!(device_tp.normal()),
                         cell!(d
                             .user_capacity
-                            .map_or(empty!(), |v| v.bytes.map_or(empty!(), |b| {
+                            .map_or(<_>::default(), |v| v.bytes.map_or(<_>::default(), |b| {
                                 let byte = byte_unit::Byte::from_bytes(b);
                                 byte.get_appropriate_unit(false).to_string()
                             }))
                             .bold()),
                         cell!(match d.rotation_rate.unwrap_or_default() {
-                            0 => empty!(),
+                            0 => <_>::default(),
                             v @ _ => v.to_string(),
                         }
                         .magenta()),
