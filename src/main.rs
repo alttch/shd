@@ -28,22 +28,29 @@ macro_rules! empty {
     };
 }
 
-macro_rules! s {
-    ($s: expr) => {
-        match $s {
-            Some(v) => format!("{}", v),
-            None => empty!(),
-        }
+macro_rules! empty_c {
+    () => {
+        String::new().normal()
     };
 }
 
-macro_rules! mark_err {
-    ($s: expr, $err: expr) => {
-        match $err {
-            true => $s.red(),
-            false => $s,
-        }
+macro_rules! s {
+    ($s: expr) => {
+        $s.map_or(empty!(), |v| format!("{}", v))
     };
+}
+
+trait Fahrenheit {
+    fn to_fahrenheit_or(self, need: bool) -> f32;
+}
+
+impl Fahrenheit for f32 {
+    fn to_fahrenheit_or(self, need: bool) -> f32 {
+        match need {
+            true => self * 1.8 + 32.0,
+            false => self,
+        }
+    }
 }
 
 #[derive(Deserialize, Debug)]
@@ -145,51 +152,30 @@ fn smartctl(device: &str) -> Vec<u8> {
         .stdout
 }
 
-fn to_fahrenheit(t: f32) -> f32 {
-    t * 1.8 + 32.0
-}
-
 fn process_temperature(
     t: Option<TempInfo>,
     fahrenheit: bool,
     levels: (f32, f32),
 ) -> (ColoredString, bool) {
     let mut err = false;
-    let ts = match t {
-        Some(temp) => match temp.current {
-            Some(tcur_c) => {
-                let tcur = match fahrenheit {
-                    true => to_fahrenheit(tcur_c),
-                    false => tcur_c,
-                };
-                let s = match fahrenheit {
-                    true => format!("{:.0} F", tcur),
-                    false => format!("{:.0} C", tcur),
-                };
-                if tcur >= levels.1 {
-                    err = true;
-                    s.red().bold()
-                } else if tcur >= levels.0 {
-                    s.yellow().bold()
-                } else {
-                    s.green().bold()
-                }
+    let ts = t.map_or(empty_c!(), |temp| {
+        temp.current.map_or(empty_c!(), |tcur_c| {
+            let tcur = tcur_c.to_fahrenheit_or(fahrenheit);
+            let s = match fahrenheit {
+                true => format!("{:.0} F", tcur),
+                false => format!("{:.0} C", tcur),
+            };
+            if tcur >= levels.1 {
+                err = true;
+                s.red().bold()
+            } else if tcur >= levels.0 {
+                s.yellow().bold()
+            } else {
+                s.green().bold()
             }
-            None => empty!().normal(),
-        },
-        None => empty!().normal(),
-    };
+        })
+    });
     (ts, err)
-}
-
-fn parse_smart_status(status: &Option<SmartStatus>) -> bool {
-    match status {
-        Some(v) => match v.passed {
-            Some(x) => x,
-            None => false,
-        },
-        None => false,
-    }
 }
 
 #[derive(Clap)]
@@ -264,7 +250,6 @@ fn main() {
     if opts.full {
         titles.extend(vec!["PoH", "PCC", "Int", "Capacity", "RRate", "Firmware"]);
     }
-    let mut need_print = false;
     if !devices.is_empty() {
         let mut table = ctable(
             match opts.no_header {
@@ -273,42 +258,20 @@ fn main() {
             },
             opts.raw,
         );
-        let temp_warn = match opts.temp_warn {
-            Some(v) => v,
-            None => match opts.fahrenheit {
-                true => to_fahrenheit(TEMP_WARN_DEFAULT_C),
-                false => TEMP_WARN_DEFAULT_C,
-            },
-        };
-        let temp_crit = match opts.temp_crit {
-            Some(v) => v,
-            None => match opts.fahrenheit {
-                true => to_fahrenheit(TEMP_CRIT_DEFAULT_C),
-                false => TEMP_CRIT_DEFAULT_C,
-            },
-        };
-        let temp_warn_nvme = match opts.temp_warn {
-            Some(v) => v,
-            None => match opts.fahrenheit {
-                true => to_fahrenheit(TEMP_WARN_DEFAULT_C_NVME),
-                false => TEMP_WARN_DEFAULT_C_NVME,
-            },
-        };
-        let temp_crit_nvme = match opts.temp_crit {
-            Some(v) => v,
-            None => match opts.fahrenheit {
-                true => to_fahrenheit(TEMP_CRIT_DEFAULT_C_NVME),
-                false => TEMP_CRIT_DEFAULT_C_NVME,
-            },
-        };
+        let temp_warn = opts
+            .temp_warn
+            .unwrap_or(TEMP_WARN_DEFAULT_C.to_fahrenheit_or(opts.fahrenheit));
+        let temp_crit = opts
+            .temp_warn
+            .unwrap_or(TEMP_CRIT_DEFAULT_C.to_fahrenheit_or(opts.fahrenheit));
+        let temp_warn_nvme = opts
+            .temp_warn
+            .unwrap_or(TEMP_WARN_DEFAULT_C_NVME.to_fahrenheit_or(opts.fahrenheit));
+        let temp_crit_nvme = opts
+            .temp_warn
+            .unwrap_or(TEMP_CRIT_DEFAULT_C_NVME.to_fahrenheit_or(opts.fahrenheit));
         for d in devices {
-            let device_tp = match d.device {
-                Some(v) => match v.tp {
-                    Some(p) => p,
-                    None => empty!(),
-                },
-                None => empty!(),
-            };
+            let device_tp = d.device.map_or(empty!(), |v| v.tp.unwrap_or_default());
             let (temp, temp_err) = process_temperature(
                 d.temperature,
                 opts.fahrenheit,
@@ -320,17 +283,31 @@ fn main() {
             if temp_err && exit_code != EXIT_CODE_ERRORS {
                 exit_code = EXIT_CODE_TEMP;
             }
-            let smart_status = parse_smart_status(&d.smart_status);
+            let smart_status = d
+                .smart_status
+                .map_or(false, |s| s.passed.unwrap_or_default());
             if !smart_status {
                 exit_code = EXIT_CODE_ERRORS;
             }
-            if opts.errors && !temp_err && smart_status {
-                continue;
-            } else {
+            if !opts.errors || (temp_err || !smart_status) {
+                macro_rules! mark_err {
+                    ($s: expr, $err: expr) => {
+                        match $err {
+                            true => $s.red(),
+                            false => $s,
+                        }
+                    };
+                }
                 let mut cells = vec![
                     cell!(mark_err!(d.name.cyan(), !smart_status)),
-                    cell!(mark_err!(s!(d.model_name).white(), !smart_status)),
-                    cell!(mark_err!(s!(d.serial_number).cyan().bold(), !smart_status)),
+                    cell!(mark_err!(
+                        d.model_name.unwrap_or_default().white(),
+                        !smart_status
+                    )),
+                    cell!(mark_err!(
+                        d.serial_number.unwrap_or_default().cyan().bold(),
+                        !smart_status
+                    )),
                     cell!(temp),
                 ];
                 if opts.full {
@@ -341,32 +318,27 @@ fn main() {
                         ),
                         cell!(s!(d.power_cycle_count).cyan()),
                         cell!(device_tp.normal()),
-                        cell!(match d.user_capacity {
-                            Some(v) => match v.bytes {
-                                Some(b) => {
-                                    let byte = byte_unit::Byte::from_bytes(b);
-                                    byte.get_appropriate_unit(false).to_string()
-                                }
-                                None => empty!(),
-                            },
-                            None => empty!(),
-                        }
-                        .bold()),
-                        cell!(match s!(d.rotation_rate).as_str() {
-                            "0" => empty!(),
-                            v @ _ => v.to_owned(),
+                        cell!(d
+                            .user_capacity
+                            .map_or(empty!(), |v| v.bytes.map_or(empty!(), |b| {
+                                let byte = byte_unit::Byte::from_bytes(b);
+                                byte.get_appropriate_unit(false).to_string()
+                            }))
+                            .bold()),
+                        cell!(match d.rotation_rate.unwrap_or_default() {
+                            0 => empty!(),
+                            v @ _ => format!("{}", v),
                         }
                         .magenta()),
-                        cell!(s!(d.firmware_version).normal()),
+                        cell!(d.firmware_version.unwrap_or_default().normal()),
                     ]);
                 }
                 table.add_row(prettytable::Row::new(cells));
-                need_print = true;
             }
         }
-        if need_print {
+        if !table.is_empty() {
             table.printstd();
-        }
+        };
     } else {
         println!("{}", "No devices available".yellow().bold());
     }
