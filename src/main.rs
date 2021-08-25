@@ -36,7 +36,7 @@ macro_rules! empty_c {
 
 macro_rules! s {
     ($s: expr) => {
-        $s.map_or(empty!(), |v| format!("{}", v))
+        $s.map_or(empty!(), |v| v.to_string())
     };
 }
 
@@ -327,7 +327,7 @@ fn main() {
                             .bold()),
                         cell!(match d.rotation_rate.unwrap_or_default() {
                             0 => empty!(),
-                            v @ _ => format!("{}", v),
+                            v @ _ => v.to_string(),
                         }
                         .magenta()),
                         cell!(d.firmware_version.unwrap_or_default().normal()),
