@@ -34,9 +34,10 @@ trait Fahrenheit {
 
 impl Fahrenheit for f32 {
     fn to_fahrenheit_or(self, need: bool) -> f32 {
-        match need {
-            true => self * 1.8 + 32.0,
-            false => self,
+        if need {
+            self * 1.8 + 32.0
+        } else {
+            self
         }
     }
 }
@@ -149,9 +150,10 @@ fn process_temperature(
     let ts = t.map_or(<_>::default(), |temp| {
         temp.current.map_or(<_>::default(), |tcur_c| {
             let tcur = tcur_c.to_fahrenheit_or(fahrenheit);
-            let s = match fahrenheit {
-                true => format!("{:.0} F", tcur),
-                false => format!("{:.0} C", tcur),
+            let s = if fahrenheit {
+                format!("{:.0} F", tcur)
+            } else {
+                format!("{:.0} C", tcur)
             };
             if tcur >= levels.1 {
                 err = true;
@@ -168,6 +170,7 @@ fn process_temperature(
 
 #[derive(Clap)]
 #[clap(version = VERSION, about = "https://github.com/alttch/shd")]
+#[allow(clippy::struct_excessive_bools)]
 struct Opts {
     #[clap(long, about = "Warning temperature, default 40 C (50 for nvme)")]
     temp_warn: Option<f32>,
@@ -189,13 +192,9 @@ struct Opts {
     no_header: bool,
 }
 
-fn main() {
-    let mut exit_code = EXIT_CODE_NORMAL;
-    let opts = Opts::parse();
-    if opts.raw {
-        SHOULD_COLORIZE.set_override(false);
-    }
+fn collect_devices() -> (Vec<SmartData>, i32) {
     let mut devices = Vec::<SmartData>::new();
+    let mut exit_code = EXIT_CODE_NORMAL;
     for m in &["nvme[0-999]", "sd[a-z]", "hd[a-z]"] {
         for entry in
             glob(&format!("/dev/{}", m)).unwrap_or_else(|_| panic!("Failed to read path {}", m))
@@ -216,7 +215,10 @@ fn main() {
                 io::stdout().write_all(&[0x0d, 0x1b, 0x5b, 0x4b]).unwrap();
                 io::stdout().flush().unwrap();
             }
-            if smartdata.smartctl.exit_status != 0 {
+            if smartdata.smartctl.exit_status == 0 {
+                smartdata.name = path.file_name().unwrap().to_str().unwrap().to_owned();
+                devices.push(smartdata);
+            } else {
                 exit_code = EXIT_CODE_SMARTCTL;
                 println!("{}", format!("Unable to read device {} info", p).red());
                 if let Some(messages) = smartdata.smartctl.messages {
@@ -226,24 +228,26 @@ fn main() {
                         }
                     }
                 };
-            } else {
-                smartdata.name = path.file_name().unwrap().to_str().unwrap().to_owned();
-                devices.push(smartdata);
             }
         }
+    }
+    (devices, exit_code)
+}
+
+fn main() {
+    let (devices, mut exit_code) = collect_devices();
+    let opts = Opts::parse();
+    if opts.raw {
+        SHOULD_COLORIZE.set_override(false);
     }
     let mut titles = vec!["Disk", "Model", "Serial", "Temp"];
     if opts.full {
         titles.extend(vec!["PoH", "PCC", "Int", "Capacity", "RRate", "Firmware"]);
     }
-    if !devices.is_empty() {
-        let mut table = ctable(
-            match opts.no_header {
-                true => None,
-                false => Some(titles),
-            },
-            opts.raw,
-        );
+    if devices.is_empty() {
+        println!("{}", "No devices available".yellow().bold());
+    } else {
+        let mut table = ctable(if opts.no_header { None } else { Some(titles) }, opts.raw);
         let temp_warn = opts
             .temp_warn
             .unwrap_or_else(|| TEMP_WARN_DEFAULT_C.to_fahrenheit_or(opts.fahrenheit));
@@ -327,8 +331,6 @@ fn main() {
         if !table.is_empty() {
             table.printstd();
         };
-    } else {
-        println!("{}", "No devices available".yellow().bold());
     }
     exit(exit_code);
 }
