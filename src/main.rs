@@ -108,7 +108,7 @@ fn ctable(titles: Option<Vec<&str>>, raw: bool) -> prettytable::Table {
         .padding(0, 1)
         .build();
     table.set_format(format);
-    titles.map(|tt| {
+    if let Some(tt) = titles {
         let mut titlevec: Vec<prettytable::Cell> = Vec::new();
         for t in tt {
             if raw {
@@ -118,7 +118,7 @@ fn ctable(titles: Option<Vec<&str>>, raw: bool) -> prettytable::Table {
             }
         }
         table.set_titles(prettytable::Row::new(titlevec));
-    });
+    };
     table
 }
 
@@ -196,8 +196,10 @@ fn main() {
         SHOULD_COLORIZE.set_override(false);
     }
     let mut devices = Vec::<SmartData>::new();
-    for m in vec!["nvme[0-999]", "sd[a-z]", "hd[a-z]"] {
-        for entry in glob(&format!("/dev/{}", m)).expect(&format!("Failed to read path {}", m)) {
+    for m in &["nvme[0-999]", "sd[a-z]", "hd[a-z]"] {
+        for entry in
+            glob(&format!("/dev/{}", m)).unwrap_or_else(|_| panic!("Failed to read path {}", m))
+        {
             let path = entry.unwrap();
             let p = path.to_str().unwrap();
             if SHOULD_COLORIZE.should_colorize() {
@@ -211,17 +213,19 @@ fn main() {
                 })
                 .unwrap();
             if SHOULD_COLORIZE.should_colorize() {
-                io::stdout().write(&[0x0d, 0x1b, 0x5b, 0x4b]).unwrap();
+                io::stdout().write_all(&[0x0d, 0x1b, 0x5b, 0x4b]).unwrap();
                 io::stdout().flush().unwrap();
             }
             if smartdata.smartctl.exit_status != 0 {
                 exit_code = EXIT_CODE_SMARTCTL;
                 println!("{}", format!("Unable to read device {} info", p).red());
-                smartdata.smartctl.messages.map(|messages| {
+                if let Some(messages) = smartdata.smartctl.messages {
                     for m in messages {
-                        m.string.map(|s| println!("{}", s));
+                        if let Some(s) = m.string {
+                            println!("{}", s);
+                        }
                     }
-                });
+                };
             } else {
                 smartdata.name = path.file_name().unwrap().to_str().unwrap().to_owned();
                 devices.push(smartdata);
@@ -242,16 +246,16 @@ fn main() {
         );
         let temp_warn = opts
             .temp_warn
-            .unwrap_or(TEMP_WARN_DEFAULT_C.to_fahrenheit_or(opts.fahrenheit));
+            .unwrap_or_else(|| TEMP_WARN_DEFAULT_C.to_fahrenheit_or(opts.fahrenheit));
         let temp_crit = opts
             .temp_warn
-            .unwrap_or(TEMP_CRIT_DEFAULT_C.to_fahrenheit_or(opts.fahrenheit));
+            .unwrap_or_else(|| TEMP_CRIT_DEFAULT_C.to_fahrenheit_or(opts.fahrenheit));
         let temp_warn_nvme = opts
             .temp_warn
-            .unwrap_or(TEMP_WARN_DEFAULT_C_NVME.to_fahrenheit_or(opts.fahrenheit));
+            .unwrap_or_else(|| TEMP_WARN_DEFAULT_C_NVME.to_fahrenheit_or(opts.fahrenheit));
         let temp_crit_nvme = opts
             .temp_warn
-            .unwrap_or(TEMP_CRIT_DEFAULT_C_NVME.to_fahrenheit_or(opts.fahrenheit));
+            .unwrap_or_else(|| TEMP_CRIT_DEFAULT_C_NVME.to_fahrenheit_or(opts.fahrenheit));
         for d in devices {
             let device_tp = d
                 .device
@@ -311,7 +315,7 @@ fn main() {
                             .bold()),
                         cell!(match d.rotation_rate.unwrap_or_default() {
                             0 => <_>::default(),
-                            v @ _ => v.to_string(),
+                            v => v.to_string(),
                         }
                         .magenta()),
                         cell!(d.firmware_version.unwrap_or_default().normal()),
