@@ -206,11 +206,16 @@ fn collect_devices() -> (Vec<SmartData>, i32) {
                 io::stdout().flush().unwrap();
             }
             let data = smartctl(p);
-            let mut smartdata: SmartData = serde_json::from_slice(&data)
-                .map_err(|e| {
-                    println!("Unable to get device {} info: {}", p, e);
-                })
-                .unwrap();
+            let mut smartdata: SmartData = match serde_json::from_slice(&data) {
+                Ok(v) => v,
+                Err(e) => {
+                    println!(
+                        "{}",
+                        format!("Unable to get device {} info: {}", p, e).yellow()
+                    );
+                    continue;
+                }
+            };
             if SHOULD_COLORIZE.should_colorize() {
                 io::stdout().write_all(&[0x0d, 0x1b, 0x5b, 0x4b]).unwrap();
                 io::stdout().flush().unwrap();
