@@ -1,4 +1,4 @@
-use clap::Clap;
+use clap::Parser;
 use colored::control::SHOULD_COLORIZE;
 use colored::{ColoredString, Colorize};
 use glob::glob;
@@ -42,6 +42,7 @@ impl Fahrenheit for f32 {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 struct SmartMessages {
     string: Option<String>,
@@ -168,27 +169,27 @@ fn process_temperature(
     (ts, err)
 }
 
-#[derive(Clap)]
+#[derive(Parser)]
 #[clap(version = VERSION, about = "https://github.com/alttch/shd")]
 #[allow(clippy::struct_excessive_bools)]
 struct Opts {
-    #[clap(long, about = "Warning temperature, default 40 C (50 for nvme)")]
+    #[clap(long, help = "Warning temperature, default 40 C (50 for nvme)")]
     temp_warn: Option<f32>,
-    #[clap(long, about = "Critical temperature, default 50 C (60 for nvme)")]
+    #[clap(long, help = "Critical temperature, default 50 C (60 for nvme)")]
     temp_crit: Option<f32>,
-    #[clap(short = 'f', long, about = "Use fahrenheit temperatures")]
+    #[clap(short = 'f', long, help = "Use fahrenheit temperatures")]
     fahrenheit: bool,
-    #[clap(short = 'R', long, about = "Suppress colors")]
+    #[clap(short = 'R', long, help = "Suppress colors")]
     raw: bool,
-    #[clap(short = 'y', long, about = "Display full info")]
+    #[clap(short = 'y', long, help = "Display full info")]
     full: bool,
     #[clap(
         short = 'e',
         long,
-        about = "Display only disks with errors / critical temperature"
+        help = "Display only disks with errors / critical temperature"
     )]
     errors: bool,
-    #[clap(short = 's', long, about = "Suppress header")]
+    #[clap(short = 's', long, help = "Suppress header")]
     no_header: bool,
 }
 
