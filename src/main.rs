@@ -127,7 +127,7 @@ fn ctable(titles: Option<Vec<&str>>, raw: bool) -> prettytable::Table {
 #[cfg(debug_assertions)]
 fn smartctl(device: &str) -> Vec<u8> {
     Command::new("sudo")
-        .args(&["smartctl", "-a", device, "-j"])
+        .args(["smartctl", "-a", device, "-j"])
         .output()
         .expect("failed to execute smartctl")
         .stdout
