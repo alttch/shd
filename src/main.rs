@@ -221,7 +221,7 @@ fn collect_devices() -> (Vec<SmartData>, i32) {
                 io::stdout().write_all(&[0x0d, 0x1b, 0x5b, 0x4b]).unwrap();
                 io::stdout().flush().unwrap();
             }
-            if smartdata.smartctl.exit_status == 0 {
+            if smartdata.smartctl.exit_status == 0 || smartdata.smartctl.exit_status == 64 {
                 smartdata.name = path.file_name().unwrap().to_str().unwrap().to_owned();
                 devices.push(smartdata);
             } else {
