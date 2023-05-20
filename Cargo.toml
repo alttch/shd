@@ -1,6 +1,6 @@
 [package]
 name = "shd"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2018"
 license = "MIT"
 description = "Shows pretty HDD/SSD list"
@@ -16,3 +16,8 @@ colored = "2.0.0"
 prettytable-rs = "0.10.0"
 byte-unit = "4.0.12"
 clap = { version = "3.0.7", features = ["derive"] }
+
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1
