@@ -15,7 +15,7 @@ const TEMP_CRIT_DEFAULT_C: f32 = 45.0;
 const TEMP_WARN_DEFAULT_C_NVME: f32 = 50.0;
 const TEMP_CRIT_DEFAULT_C_NVME: f32 = 60.0;
 
-const VERSION: &str = "0.1.4";
+const VERSION: &str = "0.1.6";
 
 const EXIT_CODE_NORMAL: i32 = 0;
 const EXIT_CODE_TEMP: i32 = 1;
