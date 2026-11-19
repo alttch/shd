@@ -4,7 +4,7 @@ use colored::{ColoredString, Colorize};
 use glob::glob;
 use serde::Deserialize;
 use std::io::{self, Write};
-use std::process::{exit, Command};
+use std::process::{Command, exit};
 
 #[macro_use]
 extern crate prettytable;
@@ -34,11 +34,7 @@ trait Fahrenheit {
 
 impl Fahrenheit for f32 {
     fn to_fahrenheit_or(self, need: bool) -> f32 {
-        if need {
-            self * 1.8 + 32.0
-        } else {
-            self
-        }
+        if need { self * 1.8 + 32.0 } else { self }
     }
 }
 
@@ -229,7 +225,14 @@ fn collect_devices() -> (Vec<SmartData>, i32) {
                 devices.push(smartdata);
             } else {
                 exit_code = EXIT_CODE_SMARTCTL;
-                println!("{}", format!("Unable to read device {} info", p).red());
+                println!(
+                    "{}",
+                    format!(
+                        "Unable to read device {} info {}",
+                        p, smartdata.smartctl.exit_status
+                    )
+                    .red()
+                );
                 if let Some(messages) = smartdata.smartctl.messages {
                     for m in messages {
                         if let Some(s) = m.string {
@@ -273,14 +276,11 @@ fn main() {
             let device_tp = d
                 .device
                 .map_or(<_>::default(), |v| v.tp.unwrap_or_default());
-            let (temp, temp_err) = process_temperature(
-                d.temperature,
-                opts.fahrenheit,
-                match device_tp.as_str() {
+            let (temp, temp_err) =
+                process_temperature(d.temperature, opts.fahrenheit, match device_tp.as_str() {
                     "nvme" => (temp_warn_nvme, temp_crit_nvme),
                     _ => (temp_warn, temp_crit),
-                },
-            );
+                });
             if temp_err && exit_code != EXIT_CODE_ERRORS {
                 exit_code = EXIT_CODE_TEMP;
             }
@@ -319,18 +319,21 @@ fn main() {
                         ),
                         cell!(s!(d.power_cycle_count).cyan()),
                         cell!(device_tp.normal()),
-                        cell!(d
-                            .user_capacity
-                            .map_or(<_>::default(), |v| v.bytes.map_or(<_>::default(), |b| {
-                                let byte = byte_unit::Byte::from_bytes(b);
-                                byte.get_appropriate_unit(false).to_string()
-                            }))
-                            .bold()),
-                        cell!(match d.rotation_rate.unwrap_or_default() {
-                            0 => <_>::default(),
-                            v => v.to_string(),
-                        }
-                        .magenta()),
+                        cell!(
+                            d.user_capacity
+                                .map_or(<_>::default(), |v| v.bytes.map_or(<_>::default(), |b| {
+                                    let byte = byte_unit::Byte::from_bytes(b);
+                                    byte.get_appropriate_unit(false).to_string()
+                                }))
+                                .bold()
+                        ),
+                        cell!(
+                            match d.rotation_rate.unwrap_or_default() {
+                                0 => <_>::default(),
+                                v => v.to_string(),
+                            }
+                            .magenta()
+                        ),
                         cell!(d.firmware_version.unwrap_or_default().normal()),
                     ]);
                 }
